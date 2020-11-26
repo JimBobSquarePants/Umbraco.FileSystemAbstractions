@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+  <!-- Package versions for package references across all projects -->
+  <ItemGroup>
+    <PackageReference Update="StyleCop.Analyzers" PrivateAssets="All" Version="1.1.118" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--Shared config files that have to exist at root level to work properly.-->
+    <ConfigFilesToCopy Include="$(MSBuildThisFileDirectory)linting\.editorconfig" />
+  </ItemGroup>
+
+  <!--Ensures our config files are up to date.-->
+  <Target Name="CopyFiles" BeforeTargets="Build">
+    <Copy SourceFiles="@(ConfigFilesToCopy)"
+          SkipUnchangedFiles = "true"
+          DestinationFolder="$(MSBuildThisFileDirectory)" />
+  </Target>
+
+</Project>
