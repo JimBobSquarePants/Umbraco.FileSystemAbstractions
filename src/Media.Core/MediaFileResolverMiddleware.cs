@@ -54,9 +54,9 @@ namespace Media.Core
                 return;
             }
 
-            if (!Udi.TryParse(context.Request.Host + context.Request.Path, out var udi)
-                && udi.EntityType == Constants.UdiEntityTypes.MediaFile
-                && udi.EntityType.Type == UdiType.ClosedString)
+            if (!Udi.TryParse(context.Request.Host + context.Request.Path, out Udi udi)
+                || udi.EntityType != Constants.UdiEntityTypes.MediaFile
+                || udi.EntityType.Type != UdiType.ClosedString)
             {
                 await this.next(context);
                 return;
@@ -83,7 +83,7 @@ namespace Media.Core
                             }
                             else
                             {
-                                // TODO: Log 404.
+                                // TODO: Log 404?
                                 await this.next(context);
                                 return;
                             }
@@ -97,7 +97,7 @@ namespace Media.Core
                         }
                         finally
                         {
-                            Workers.TryRemove(id, out Lazy<Task> writeTask);
+                            _ = Workers.TryRemove(id, out Lazy<Task> writeTask);
                         }
                     }, LazyThreadSafetyMode.ExecutionAndPublication)).Value;
         }
