@@ -3,11 +3,14 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using FileSystem.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Media.Core
 {
@@ -20,6 +23,7 @@ namespace Media.Core
             = new ConcurrentDictionary<string, Lazy<Task>>(StringComparer.OrdinalIgnoreCase);
 
         private readonly RequestDelegate next;
+        private readonly MediaFileResolverMiddlewareOptions options;
         private readonly ILogger logger;
         private readonly IFileSystem fileSystem;
 
@@ -27,14 +31,17 @@ namespace Media.Core
         /// Initializes a new instance of the <see cref="MediaFileResolverMiddleware"/> class.
         /// </summary>
         /// <param name="next">The next middleware in the pipeline.</param>
+        /// <param name="options">The middleware options.</param>
         /// <param name="logger">The logger instance.</param>
         /// <param name="fileSystem">The file system.</param>
         public MediaFileResolverMiddleware(
             RequestDelegate next,
+            IOptions<MediaFileResolverMiddlewareOptions> options,
             ILogger<MediaFileResolverMiddleware> logger,
             IFileSystem fileSystem)
         {
             this.next = next;
+            this.options = options.Value;
             this.logger = logger;
             this.fileSystem = fileSystem;
         }
@@ -73,14 +80,16 @@ namespace Media.Core
                         try
                         {
                             CancellationToken cancellationToken = context?.RequestAborted ?? CancellationToken.None;
-                            IFileSystemEntry fileStoreEntry = await this.fileSystem.GetFileAsync(id, cancellationToken);
+                            IFileSystemEntry entry = await this.fileSystem.GetFileAsync(id, cancellationToken);
 
-                            if (fileStoreEntry != null)
+                            if (entry != null)
                             {
-                                using (System.IO.Stream stream = await fileStoreEntry.CreateReadStreamAsync())
-                                {
-                                    // TODO: Serve output.
-                                }
+                                using Stream stream = await entry.CreateReadStreamAsync();
+                                await this.SendResponseAsync(
+                                    entry,
+                                    new MediaContext(context),
+                                    stream,
+                                    this.options.BrowserMaxAge);
                             }
                             else
                             {
@@ -101,6 +110,44 @@ namespace Media.Core
                             _ = Workers.TryRemove(id, out Lazy<Task> writeTask);
                         }
                     }, LazyThreadSafetyMode.ExecutionAndPublication)).Value;
+        }
+
+        private async Task SendResponseAsync(
+            IFileSystemEntry entry,
+            MediaContext mediaContext,
+            Stream stream,
+            TimeSpan maxAge)
+        {
+            mediaContext.ComprehendRequestHeaders(entry.LastModifiedUtc, entry.ContentLength);
+
+            switch (mediaContext.GetPreconditionState())
+            {
+                case MediaContext.PreconditionState.Unspecified:
+                case MediaContext.PreconditionState.ShouldProcess:
+                    if (mediaContext.IsHeadRequest())
+                    {
+                        await mediaContext.SendStatusAsync(ResponseConstants.Status200Ok, entry.ContentType, maxAge);
+                        return;
+                    }
+
+                    this.logger.LogFileServed(mediaContext.GetDisplayUrl(), entry.Name);
+                    await mediaContext.SendAsync(stream, entry.ContentType, maxAge);
+                    return;
+
+                case MediaContext.PreconditionState.NotModified:
+                    this.logger.LogFileNotModified(mediaContext.GetDisplayUrl());
+                    await mediaContext.SendStatusAsync(ResponseConstants.Status304NotModified, entry.ContentType, maxAge);
+                    return;
+
+                case MediaContext.PreconditionState.PreconditionFailed:
+                    this.logger.LogFilePreconditionFailed(mediaContext.GetDisplayUrl());
+                    await mediaContext.SendStatusAsync(ResponseConstants.Status412PreconditionFailed, entry.ContentType, maxAge);
+                    return;
+                default:
+                    var exception = new NotImplementedException(mediaContext.GetPreconditionState().ToString());
+                    Debug.Fail(exception.ToString());
+                    throw exception;
+            }
         }
     }
 }
