@@ -1,6 +1,7 @@
-﻿// Copyright (c) James Jackson-South.
+// Copyright (c) James Jackson-South.
 // See LICENSE for more details.
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FileSystem.Abstractions
@@ -15,21 +16,24 @@ namespace FileSystem.Abstractions
         /// if no file is found.
         /// </summary>
         /// <param name="name">The file name to return.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="IFileSystemEntry"/>.</returns>
-        Task<IFileSystemEntry> GetFileAsync(string name);
+        ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken);
 
         /// <summary>
         /// Puts the file entry against the file system.
         /// </summary>
         /// <param name="entry">The entry containing the file to put.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="Task"/>.</returns>
-        Task PutFileAsync(IFileSystemEntry entry);
+        ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken);
 
         /// <summary>
         /// Attempts to delete the file matching the given name.
         /// </summary>
         /// <param name="name">The name of the file to delete.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="bool"/> indicating the result.</returns>
-        Task<bool> TryDeleteFileAsync(string name);
+        ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken);
     }
 }

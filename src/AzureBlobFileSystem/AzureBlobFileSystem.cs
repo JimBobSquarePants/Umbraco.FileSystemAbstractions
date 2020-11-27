@@ -2,6 +2,7 @@
 // See LICENSE for more details.
 
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -30,40 +31,43 @@ namespace AzureBlobFileSystem
         }
 
         /// <inheritdoc/>
-        public async Task<IFileSystemEntry> GetFileAsync(string name)
+        public async ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken)
         {
             BlobClient client = this.container.GetBlobClient(name);
 
-            if (!await client.ExistsAsync())
+            if (!await client.ExistsAsync(cancellationToken))
             {
                 return null;
             }
 
             // I've had a good read through the SDK source and I believe we cannot get
             // a 304 here since 'If-Modified-Since' header is not set by default.
-            BlobProperties properties = (await client.GetPropertiesAsync()).Value;
+            BlobProperties properties = (await client.GetPropertiesAsync(cancellationToken: cancellationToken)).Value;
 
             return new AzureBlobFileSystemEntry(client, properties);
         }
 
         /// <inheritdoc/>
-        public async Task PutFileAsync(IFileSystemEntry entry)
+        public async ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken)
         {
-            var headers = new BlobHttpHeaders
+            var options = new BlobUploadOptions
             {
-                ContentType = entry.ContentType
+                HttpHeaders = new BlobHttpHeaders
+                {
+                    ContentType = entry.ContentType,
+                }
             };
 
             // TODO: Check file size limit here.
             using Stream stream = await entry.CreateReadStreamAsync();
-            _ = await this.container.GetBlobClient(entry.Name).UploadAsync(stream, headers);
+            _ = await this.container.GetBlobClient(entry.Name).UploadAsync(stream, options, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public async Task<bool> TryDeleteFileAsync(string name)
+        public async ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken)
         {
             BlobClient client = this.container.GetBlobClient(name);
-            return (await client.DeleteIfExistsAsync()).Value;
+            return (await client.DeleteIfExistsAsync(cancellationToken: cancellationToken)).Value;
         }
     }
 }

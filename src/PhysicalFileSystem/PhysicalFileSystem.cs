@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using FileSystem.Abstractions;
 using Microsoft.Extensions.FileProviders;
@@ -39,23 +40,32 @@ namespace PhysicalFileSystem
         }
 
         /// <inheritdoc/>
-        public Task<IFileSystemEntry> GetFileAsync(string name)
+        public ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return ValueTaskEx.FromCanceled<IFileSystemEntry>(cancellationToken);
+            }
+
             string path = Path.Combine(this.root, ToFilePath(name), name);
             IFileInfo file = this.fileProvider.GetFileInfo(path);
 
             if (!file.Exists)
             {
-                return Task.FromResult<IFileSystemEntry>(null);
+                return ValueTaskEx.FromResult(default(IFileSystemEntry));
             }
 
-            return Task.FromResult<IFileSystemEntry>(
-                new PhysicalFileSystemEntry(file, this.contentTypeProvider));
+            return ValueTaskEx.FromResult<IFileSystemEntry>(new PhysicalFileSystemEntry(file, this.contentTypeProvider));
         }
 
         /// <inheritdoc/>
-        public async Task PutFileAsync(IFileSystemEntry entry)
+        public async ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                await ValueTaskEx.FromCanceled(cancellationToken);
+            }
+
             string name = entry.Name;
             string path = Path.Combine(this.root, ToFilePath(name), name);
             string directory = Path.GetDirectoryName(path);
@@ -67,22 +77,27 @@ namespace PhysicalFileSystem
 
             using Stream stream = await entry.CreateReadStreamAsync();
             using FileStream fileStream = File.Create(path);
-            await stream.CopyToAsync(fileStream);
+            await stream.CopyToAsync(fileStream, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public Task<bool> TryDeleteFileAsync(string name)
+        public ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return ValueTaskEx.FromCanceled<bool>(cancellationToken);
+            }
+
             string path = Path.Combine(this.root, ToFilePath(name), name);
             IFileInfo file = this.fileProvider.GetFileInfo(path);
 
             if (!file.Exists)
             {
-                return Task.FromResult(false);
+                return ValueTaskEx.FromResult(false);
             }
 
             File.Delete(file.PhysicalPath);
-            return Task.FromResult(true);
+            return ValueTaskEx.FromResult(true);
         }
 
         internal static string GetContentRoot(PhysicalFileSystemOptions options, string contentRootPath)

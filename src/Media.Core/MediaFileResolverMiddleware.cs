@@ -72,7 +72,8 @@ namespace Media.Core
                     {
                         try
                         {
-                            IFileSystemEntry fileStoreEntry = await this.fileSystem.GetFileAsync(id);
+                            CancellationToken cancellationToken = context?.RequestAborted ?? CancellationToken.None;
+                            IFileSystemEntry fileStoreEntry = await this.fileSystem.GetFileAsync(id, cancellationToken);
 
                             if (fileStoreEntry != null)
                             {

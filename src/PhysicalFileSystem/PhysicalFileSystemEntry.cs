@@ -1,4 +1,4 @@
-﻿// Copyright (c) James Jackson-South.
+// Copyright (c) James Jackson-South.
 // See LICENSE for more details.
 
 using System;
