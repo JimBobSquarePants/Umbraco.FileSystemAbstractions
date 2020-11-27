@@ -52,7 +52,7 @@ namespace PhysicalFileSystem
 
             if (!file.Exists)
             {
-                return ValueTaskEx.FromResult(default(IFileSystemEntry));
+                return ValueTaskEx.FromResult<IFileSystemEntry>(null);
             }
 
             return ValueTaskEx.FromResult<IFileSystemEntry>(new PhysicalFileSystemEntry(file, this.contentTypeProvider));
