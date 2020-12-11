@@ -19,6 +19,9 @@ namespace PhysicalFileSystem
     /// </summary>
     public class PhysicalFileSystem : IFileSystem
     {
+        // Extended version of Path.GetInvalidPathChars
+        private static readonly char[] InvalidPathChars = new char[] { '\0', '/', '+', ' ' };
+
         private readonly IFileProvider fileProvider;
         private readonly IFileContentTypeProvider contentTypeProvider;
         private readonly string root;
@@ -35,12 +38,18 @@ namespace PhysicalFileSystem
             IHostEnvironment environment)
         {
             this.root = GetContentRoot(options.Value, environment.ContentRootPath);
+
+            if (!Directory.Exists(this.root))
+            {
+                Directory.CreateDirectory(this.root);
+            }
+
             this.fileProvider = new PhysicalFileProvider(this.root);
             this.contentTypeProvider = contentTypeProvider;
         }
 
         /// <inheritdoc/>
-        public ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken)
+        public ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -57,7 +66,7 @@ namespace PhysicalFileSystem
         }
 
         /// <inheritdoc/>
-        public async ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken)
+        public async ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -70,7 +79,7 @@ namespace PhysicalFileSystem
 
             if (!Directory.Exists(directory))
             {
-                _ = Directory.CreateDirectory(directory);
+                Directory.CreateDirectory(directory);
             }
 
             using Stream stream = await entry.CreateReadStreamAsync();
@@ -79,7 +88,7 @@ namespace PhysicalFileSystem
         }
 
         /// <inheritdoc/>
-        public ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken)
+        public ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -119,28 +128,39 @@ namespace PhysicalFileSystem
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe string ToFilePath(string name)
         {
+            name = Uri.UnescapeDataString(name.Replace("%2520", " "));
+
             // Each key substring char + separator + key
             int nameLength = Path.GetFileNameWithoutExtension(name.AsSpan()).Length;
             int length = (nameLength * 2) + name.Length;
-            fixed (char* keyPtr = name)
+            fixed (char* namePtr = name)
             {
-                return string.Create(length, (Ptr: (IntPtr)keyPtr, name.Length), (chars, args) =>
+                return string.Create(length, (Ptr: (IntPtr)namePtr, name.Length), (chars, args) =>
                 {
                     const char separator = '/';
-                    var keySpan = new ReadOnlySpan<char>((char*)args.Ptr, args.Length);
-                    ref char keyRef = ref MemoryMarshal.GetReference(keySpan);
+                    const char dash = '-';
+                    var nameSpan = new ReadOnlySpan<char>((char*)args.Ptr, args.Length);
+                    ref char nameBase = ref MemoryMarshal.GetReference(nameSpan);
                     ref char charRef = ref MemoryMarshal.GetReference(chars);
 
+                    // Folder
                     int index = 0;
                     for (int i = 0; i < nameLength; i++)
                     {
-                        Unsafe.Add(ref charRef, index++) = Unsafe.Add(ref keyRef, i);
+                        char n = Unsafe.Add(ref nameBase, i);
+                        if (Array.IndexOf(InvalidPathChars, n) > -1)
+                        {
+                            n = dash;
+                        }
+
+                        Unsafe.Add(ref charRef, index++) = n;
                         Unsafe.Add(ref charRef, index++) = separator;
                     }
 
-                    for (int i = 0; i < keySpan.Length; i++)
+                    // File
+                    for (int i = 0; i < nameSpan.Length; i++)
                     {
-                        Unsafe.Add(ref charRef, index++) = Unsafe.Add(ref keyRef, i);
+                        Unsafe.Add(ref charRef, index++) = Unsafe.Add(ref nameBase, i);
                     }
                 });
             }

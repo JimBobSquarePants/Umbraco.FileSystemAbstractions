@@ -31,7 +31,7 @@ namespace AzureBlobFileSystem
         }
 
         /// <inheritdoc/>
-        public async ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken)
+        public async ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken = default)
         {
             BlobClient client = this.container.GetBlobClient(name);
 
@@ -48,7 +48,7 @@ namespace AzureBlobFileSystem
         }
 
         /// <inheritdoc/>
-        public async ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken)
+        public async ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken = default)
         {
             var options = new BlobUploadOptions
             {
@@ -64,7 +64,7 @@ namespace AzureBlobFileSystem
         }
 
         /// <inheritdoc/>
-        public async ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken)
+        public async ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken = default)
         {
             BlobClient client = this.container.GetBlobClient(name);
             return (await client.DeleteIfExistsAsync(cancellationToken: cancellationToken)).Value;

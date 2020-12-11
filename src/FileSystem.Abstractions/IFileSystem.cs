@@ -18,7 +18,7 @@ namespace FileSystem.Abstractions
         /// <param name="name">The file name to return.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="IFileSystemEntry"/>.</returns>
-        ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken);
+        ValueTask<IFileSystemEntry> GetFileAsync(string name, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Puts the file entry against the file system.
@@ -26,7 +26,7 @@ namespace FileSystem.Abstractions
         /// <param name="entry">The entry containing the file to put.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="Task"/>.</returns>
-        ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken);
+        ValueTask PutFileAsync(IFileSystemEntry entry, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Attempts to delete the file matching the given name.
@@ -34,6 +34,6 @@ namespace FileSystem.Abstractions
         /// <param name="name">The name of the file to delete.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The <see cref="bool"/> indicating the result.</returns>
-        ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken);
+        ValueTask<bool> TryDeleteFileAsync(string name, CancellationToken cancellationToken = default);
     }
 }
