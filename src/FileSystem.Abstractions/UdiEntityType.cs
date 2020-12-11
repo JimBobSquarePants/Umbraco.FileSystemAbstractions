@@ -1,8 +1,7 @@
-﻿// Copyright (c) James Jackson-South.
+// Copyright (c) James Jackson-South.
 // See LICENSE for more details.
 
 using System;
-using Microsoft.Extensions.Primitives;
 
 namespace FileSystem.Abstractions
 {
@@ -35,7 +34,7 @@ namespace FileSystem.Abstractions
         /// <summary>
         /// Gets the entity type value.
         /// </summary>
-        public StringValues Value { get; }
+        public string Value { get; }
 
         public static bool operator ==(UdiEntityType left, UdiEntityType right)
             => left.Equals(right);

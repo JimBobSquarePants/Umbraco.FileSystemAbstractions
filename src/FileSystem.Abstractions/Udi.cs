@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Primitives;
 
 namespace FileSystem.Abstractions
 {
@@ -67,7 +66,7 @@ namespace FileSystem.Abstractions
         /// <summary>
         /// Gets the entity identifier.
         /// </summary>
-        public StringValues Id { get; }
+        public string Id { get; }
 
         public static bool operator ==(Udi left, Udi right)
             => left.Equals(right);
