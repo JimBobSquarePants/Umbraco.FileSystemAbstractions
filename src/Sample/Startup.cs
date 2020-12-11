@@ -1,22 +1,21 @@
+// Copyright (c) James Jackson-South.
+// See LICENSE for more details.
+
+using FileSystem.Abstractions;
+using Media.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using SixLabors.ImageSharp.Web.DependencyInjection;
 
 namespace Sample
 {
     public class Startup
     {
         public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
+            => this.Configuration = configuration;
 
         public IConfiguration Configuration { get; }
 
@@ -24,6 +23,13 @@ namespace Sample
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+
+            services.AddSingleton<IFileContentTypeProvider, ApacheFileContentTypeProvider>();
+            services.AddSingleton<IFileSystem, PhysicalFileSystem.PhysicalFileSystem>();
+
+            services.AddImageSharp()
+                    .ClearProviders()
+                    .AddProvider<FileSystemImageProvider>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -36,22 +42,27 @@ namespace Sample
             else
             {
                 app.UseExceptionHandler("/Home/Error");
+
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
             app.UseHttpsRedirection();
+
+            app.UseImageSharp();
+
+            app.UseMiddleware<MediaFileResolverMiddleware>();
+
             app.UseStaticFiles();
 
             app.UseRouting();
 
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllerRoute(
+            app.UseEndpoints(
+                endpoints => endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
-            });
+                    pattern: "{controller=Home}/{action=Index}/{id?}"));
         }
     }
 }

@@ -61,6 +61,10 @@ namespace Media.Core
                 return;
             }
 
+            // In addition to parsing the UDI we would either:
+            // 1. Fire a validation event that a handler could use to read
+            //    the media service and check if the file is in recycling - Preferred.
+            // 2. Directly inject the media service into this middleware.
             if (!Udi.TryParse(context.Request.Host + context.Request.Path, out Udi udi)
                 || udi.EntityType != Constants.UdiEntityTypes.MediaFile
                 || udi.EntityType.Type != UdiType.ClosedString)

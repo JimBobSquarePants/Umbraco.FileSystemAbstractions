@@ -1,4 +1,4 @@
-﻿// Copyright (c) James Jackson-South.
+// Copyright (c) James Jackson-South.
 // See LICENSE for more details.
 
 namespace PhysicalFileSystem
@@ -11,6 +11,6 @@ namespace PhysicalFileSystem
         /// <summary>
         /// Gets or sets the root path to the physical file system.
         /// </summary>
-        public string RootPath { get; set; }
+        public string RootPath { get; set; } = "media";
     }
 }

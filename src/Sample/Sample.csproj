@@ -4,4 +4,10 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AzureBlobFileSystem\AzureBlobFileSystem.csproj" />
+    <ProjectReference Include="..\Media.Core\Media.Core.csproj" />
+    <ProjectReference Include="..\PhysicalFileSystem\PhysicalFileSystem.csproj" />
+  </ItemGroup>
+
 </Project>

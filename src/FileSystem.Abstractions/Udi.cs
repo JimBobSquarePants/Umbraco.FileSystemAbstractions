@@ -2,6 +2,7 @@
 // See LICENSE for more details.
 
 using System;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Primitives;
 
 namespace FileSystem.Abstractions
@@ -89,6 +90,7 @@ namespace FileSystem.Abstractions
         /// If the method returns <see langword="false"/>, result equals <see cref="Guid.Empty"/>.
         /// </param>
         /// <returns>The <see cref="bool"/>.</returns>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public bool TryGetGuid(out Guid result)
         {
             result = this.guid;
@@ -143,6 +145,7 @@ namespace FileSystem.Abstractions
             return $"umb://{this.EntityType.Value}";
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool ParseImpl(string value, bool tryParse, out Udi result)
         {
             result = default;
@@ -155,11 +158,32 @@ namespace FileSystem.Abstractions
                     return false;
                 }
 
-                throw new FormatException($"Input string \"{value}\" is not a valid Udi.");
+                ThrowBadFormat(value);
+                return false;
             }
 
-            string entityType = uri.Host;
-            string path = uri.AbsolutePath.TrimStart('/');
+            string entityType = null;
+            if (uri.Segments.Length >= 2)
+            {
+                entityType = uri.Segments[1].Trim('/');
+            }
+
+            if (string.IsNullOrEmpty(entityType))
+            {
+                if (tryParse)
+                {
+                    return false;
+                }
+
+                ThrowBadFormat(value);
+            }
+
+            string path = null;
+            if (uri.Segments.Length >= 3)
+            {
+                path = uri.Segments[2];
+            }
+
             if (!string.IsNullOrEmpty(path))
             {
                 if (Guid.TryParse(path, out Guid id))
@@ -178,5 +202,9 @@ namespace FileSystem.Abstractions
 
             return true;
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowBadFormat(string value)
+            => throw new FormatException($"Input string \"{value}\" is not a valid Udi.");
     }
 }

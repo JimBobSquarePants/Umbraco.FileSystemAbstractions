@@ -47,9 +47,7 @@ namespace PhysicalFileSystem
                 return ValueTaskEx.FromCanceled<IFileSystemEntry>(cancellationToken);
             }
 
-            string path = Path.Combine(this.root, ToFilePath(name), name);
-            IFileInfo file = this.fileProvider.GetFileInfo(path);
-
+            IFileInfo file = this.fileProvider.GetFileInfo(ToFilePath(name));
             if (!file.Exists)
             {
                 return ValueTaskEx.FromResult<IFileSystemEntry>(null);
@@ -67,7 +65,7 @@ namespace PhysicalFileSystem
             }
 
             string name = entry.Name;
-            string path = Path.Combine(this.root, ToFilePath(name), name);
+            string path = Path.Combine(this.root, ToFilePath(name));
             string directory = Path.GetDirectoryName(path);
 
             if (!Directory.Exists(directory))
@@ -88,8 +86,7 @@ namespace PhysicalFileSystem
                 return ValueTaskEx.FromCanceled<bool>(cancellationToken);
             }
 
-            string path = Path.Combine(this.root, ToFilePath(name), name);
-            IFileInfo file = this.fileProvider.GetFileInfo(path);
+            IFileInfo file = this.fileProvider.GetFileInfo(ToFilePath(name));
 
             if (!file.Exists)
             {
